@@ -12,6 +12,8 @@
 # GDP = Consumption + Investment + Government Spending + Net Exports
 # Net exports = Exports - Imports
 # GDDPC = rgdpl
+source("identifyBreaks.R")
+
 
 data <- read.csv2("pwt71_wo_country_names_wo_g_vars.csv", sep = ",", dec = ".")
 factor(data$isocode)
