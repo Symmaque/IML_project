@@ -1,16 +1,4 @@
-# Two methods
-
-# BP method : statistics
-
-# Data since 1970 --> max 2 breaks
-# Data since 1955 --> max 3 breaks
-# Data before 1955 --> max 4 breaks
-
-fetchData <- function(){
-  data <- read.csv2("pwt71_wo_country_names_wo_g_vars.csv", sep = ",", dec = ".")
-  data <- data[,c("isocode","year","rgdpl")]
-  data <- na.omit(data)
-}
+library(strucchange)
 getMaximumBreaks <- function (x, start){
   if(start >= 1970){
     return(2)
@@ -30,7 +18,7 @@ getFirstBreak <- function (x){
   #x <- ts(x$rgdpl, start = 1950, end = 2010)  #convert into time serie
   #time <- 1:61
   #breakpoints(log(x) ~ time, h = 7)
-  breakpoints(log(x$rgdpl)~x$year)
+  breakpoints(log(x$rgdpl2)~x$year)
 }
 getGrowth <- function(x, start, end){
   y <- NULL
@@ -44,7 +32,7 @@ getGrowthEpisode <- function (growth, breakpoints, nbBreaks){
     return (mean(growth))
   }
   growthBetweenBreakdates <- NULL
-  growthBetweenBreakdates[1] <- mean(growth[1:(breakpoints[1]-1)])
+  growthBetweenBreakdates[1] <- mean(growth[1:(breakpoints[1])])
   if (nbBreaks >= 2){
     for (t in 2:nbBreaks){
     growthBetweenBreakdates[t] <- mean(growth[breakpoints[t-1]:(breakpoints[t]-1)])
@@ -90,10 +78,10 @@ getGenuineBreaks <- function(x){
   end <- max(x$year)  #supposed to always be 2010
   nbMaxBreaks <- getMaximumBreaks(x, start)
   #get breakpoints
-  if(length(x$rgdpl) < 16){
-    return(list(length(x$rgdpl),"mesures"))
+  if(length(x$rgdpl2) < 16){
+    return(list(length(x$rgdpl2),"mesures"))
   }
-  breakpoints <- breakpoints(x$rgdpl~x$year, h = 8, breaks = nbMaxBreaks)
+  breakpoints <- breakpoints(x$rgdpl2~x$year, h = 8, breaks = nbMaxBreaks)
 
   breakpoints <- breakpoints[[1]]
   if (is.na(breakpoints[1])){
@@ -116,26 +104,14 @@ getGenuineBreaks <- function(x){
   #apply criteria on breakdates to indentify the genuine ones
   return(verifyBreaks(growthBetweenBreakdates, breakdates, nbBreaks))
 }
+identifyBreaks <- function (){
+  isocodes <- levels(factor(data$isocode))
+  breaks <- NULL
 
-
-isocodes <- levels(factor(data$isocode))
-breaks <- NULL
-
-for (isocode in isocodes){
-  countryData <- getCountryData(data, isocode)
-  resultCountry <- list(isocode = isocode, breaks = getGenuineBreaks(countryData))
-  breaks <- c(breaks,resultCountry)
+  for (isocode in isocodes){
+    countryData <- getCountryData(data, isocode)
+    resultCountry <- list(isocode = isocode, breaks = getGenuineBreaks(countryData))
+    breaks <- c(breaks,resultCountry)
+  }
+  return(breaks)
 }
-
-source("plotResults.R")
-
-#plotData(dataBra)
-#x <- getGenuineBreaks(dataBra)
-# y <- getFirstBreak(dataBra)
-# print(y)
-# dataCan <- getCountryData(data,"CAN")
-# maxCan <- getMaximumBreaks(dataCan)
-# plotData(dataCan)
-# x<- getFirstBreak(dataCan)
-
-# Comparing with GDP

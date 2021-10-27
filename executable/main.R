@@ -12,21 +12,18 @@
 # GDP = Consumption + Investment + Government Spending + Net Exports
 # Net exports = Exports - Imports
 # GDDPC = rgdpl
+fetchData <- function(){
+  data <- read.csv2("../data/pwt71_wo_country_names_wo_g_vars.csv", sep = ",", dec = ".")
+  data <- data[,c("isocode","year","rgdpl","rgdpl2","rgdpch")]
+  data <- na.omit(data)
+}
+
+data <- fetchData()
+
+#identify breaks/episodes
 source("identifyBreaks.R")
 
+#compute magnitude for each episode
+source("computeMagnitude.R")
 
-data <- read.csv2("pwt71_wo_country_names_wo_g_vars.csv", sep = ",", dec = ".")
-factor(data$isocode)
-factor(data$year)
-na.omit(data)
 
-lnGDPPC <- log(data$cgdp)
-x <- subset.data.frame(data, isocode == "CAN")
-y <- subset.data.frame(data, isocode == "JOR")
-
-xx <- data[data$isocode == "CAN",]
-plot(xx$year, xx$ppp,type = "l")
-plot(xx$year, log(xx$rgdpl),type = "l")
-plot(y$year, log(y$rgdpl),type = "l")
-print(max(log(x$cgdp/x$POP)))
-isocode <- data$isocode
