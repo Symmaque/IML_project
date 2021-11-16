@@ -1,30 +1,22 @@
-tab <- read.csv2("../data/isocodes.csv", sep = ",", quote = "\"")
-results <- NULL
-iso <- NULL
-breakdates <- NULL
-breakType <- NULL
-countryNames <- NULL
-nrows <- 0
-
-getCountryName <- function(isocode){
-  result <- tab[tab$Alpha.3.code == isocode,1]
-  if(length(result) == 0){
-    return(isocode)
-  }
-  return(result)
+plotData <- function (data){
+  plot(data$year, log(data$rgdpl), type = "l")
 }
 
-for (i in 0:189){
-  currentBreaks <- breaks[[(2*i + 2)]]$realBreakdates
-  breakdates <- c(breakdates,currentBreaks)
-  breakType <- c(breakType,breaks[[(2*i + 2)]]$realBreakdatesType)
-  nbBreaks <- length(currentBreaks)
-  #countryName <- getCountryName(breaks[[(2*i + 1)]])
-  countryName <- breaks[[(2*i + 1)]]
-  countryNames <- c(countryNames,rep(countryName,nbBreaks))
-  nrows <- nrows + nbBreaks
+getBreaksData <- function (){
+  breakdates <- unname(unlist(sapply(breaks, "[[", 1))) #get a vector with alla breakdates
+  breakType <- unname(unlist(sapply(breaks, "[[", 2)))  #get a vector with all break types
+  nbBreaks <- lengths(sapply(breaks, "[[", 1))          #get a vector with the nb of breaks for each country
+  countries <- levels(factor(data$isocode))                  #get the list of countries
+  countryNames <- rep(countries[nbBreaks != 0],nbBreaks[nbBreaks != 0]) #rep each country it's number of breaks times
+
+  resMatrix <- cbind(countryNames, breakdates, breakType)
+  colnames(resMatrix) <- c("countryName", "breakdates", "breakType")
+  breaksData <- as.data.frame(resMatrix)
+  breaksData$breakdates <- as.numeric(breaksData$breakdates)
+  breaksData$breakType <- as.numeric(breaksData$breakType)
+  write.table(resMatrix, "./results/Country breaks.csv")
+  return(breaksData)
 }
 
-#TODO : write the matrix in a csv file
-resMatrix <- cbind(countryNames, breakdates, breakType)
-write.table(resMatrix, "Country breaks.csv")
+
+
