@@ -1,14 +1,9 @@
-# Two methods
-
-# BP method : statistics
-
-# Data since 1970 --> max 2 breaks
-# Data since 1955 --> max 3 breaks
-# Data before 1955 --> max 4 breaks
-
+#load functions
 source("./lib/identifyBreaksLibrary.R")
 
+# list  of breaks for every country
 breaks <- identifyBreaks()
 
+# data frame of breaks for every country and writing in csv file
 breaksData <- getBreaksData()
 
