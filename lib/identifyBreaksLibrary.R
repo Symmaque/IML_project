@@ -1,5 +1,6 @@
 library(strucchange)
-getMaximumBreaks <- function (x, start){
+
+getMaximumBreaks <- function (start){
   if(start >= 1970){
     return(2)
   }else if (start >= 1955){
@@ -9,39 +10,36 @@ getMaximumBreaks <- function (x, start){
   }
 }
 
-getCountryData<- function (country){
-  data[data$isocode == country,]
+getGrowthEpisode <- function(country, start_year, end_year){
+  initialGDP <- data[data$isocode == country & data$year == start_year,"rgdpl"]
+  finalGDP <- data[data$isocode == country & data$year == end_year,"rgdpl"]
+  result <- (finalGDP - initialGDP)/initialGDP
+  return(result)
 }
 
-getGrowthCountry <- function(data_country, start_index, end_index){
-  growth <- NULL
-  growth[1] <- NULL
-  for (t in 2:(end_index-start_index)){
-    growth[t] <- (data_country$rgdpl[t] - data_country$rgdpl[t-1])/data_country$rgdpl[t-1]
-  }
-  return(growth)
-}
+getGrowthCountry <- function (breakpoints, nbBreaks, country){
+  data_country <- data[data$isocode == country,]
+  first_year <- min(data_country$year)
+  last_year <- max(data_country$year)
 
-# TODO : see if this function works and is usefull
-getGrowthCountry2 <- function(country, start_index, end_index){
-  return(growthData[[country]]$growth[start_index:end_index])
-}
-
-
-getGrowthEpisode <- function (growth, breakpoints, nbBreaks){
   if(nbBreaks == 0){
-    return (mean(growth, na.rm = T))
+    #return (mean(growth, na.rm = T))
+    return (getGrowthEpisode(country, first_year, last_year))
   }
   growthBetweenBreakdates <- NULL
-  growthBetweenBreakdates[1] <- mean(growth[2:(breakpoints[1])])
+  growthBetweenBreakdates[1] <- getGrowthEpisode(country, first_year, breakpoints[1]+first_year+1)
+  #growthBetweenBreakdates[1] <- mean(growth[2:(breakpoints[1])])
   if (nbBreaks >= 2){
     for (t in 2:nbBreaks){
-    growthBetweenBreakdates[t] <- mean(growth[breakpoints[t-1]:(breakpoints[t]-1)])
+      #growthBetweenBreakdates[t] <- mean(growth[breakpoints[t-1]:(breakpoints[t]-1)])
+      growthBetweenBreakdates[t] <- getGrowthEpisode(country, breakpoints[t-1]+first_year+1, breakpoints[t]+first_year+1)
     }
   }
-  growthBetweenBreakdates[nbBreaks+1] <- mean(growth[breakpoints[nbBreaks]:length(growth)])
-  return(growthBetweenBreakdates*100)
+  #growthBetweenBreakdates[nbBreaks+1] <- mean(growth[breakpoints[nbBreaks]:length(growth)])
+  growthBetweenBreakdates[nbBreaks+1] <- getGrowthEpisode(country, breakpoints[nbBreaks]+first_year+1, last_year)
+  return(growthBetweenBreakdates)
 }
+
 verifyBreaks <- function(growthBetweenBreakdates, breakdates, nbBreaks){
   realBreakdates <- NULL
   breakType <- NULL
@@ -51,7 +49,8 @@ verifyBreaks <- function(growthBetweenBreakdates, breakdates, nbBreaks){
   }
 
   breakType[1] <- sign(growthBetweenBreakdates[2]-growthBetweenBreakdates[1])
-  if(abs(growthBetweenBreakdates[2]-growthBetweenBreakdates[1]) > 2){
+  #0.084
+  if(abs(growthBetweenBreakdates[2]-growthBetweenBreakdates[1]) > 0.084){
     realBreakdates[1] <- breakdates[1]
     realBreakdatesType[1] <- breakType[1]
   }
@@ -62,10 +61,11 @@ verifyBreaks <- function(growthBetweenBreakdates, breakdates, nbBreaks){
     transition <- growthBetweenBreakdates[t+1]-growthBetweenBreakdates[t]
     breakType[t] <- sign(transition)
     # if same type and change > 1 ppa
-    if (breakType[t-1] == breakType[t] & abs(transition) > 1){
+    #0.042
+    if (breakType[t-1] == breakType[t] & abs(transition) > 0.042){
       realBreakdates <- c(realBreakdates, breakdates[t])  #confirm the break
       realBreakdatesType <- c(realBreakdatesType, breakType[t])
-    }else if (breakType[t-1] != breakType[t] & abs(transition) > 3){
+    }else if (breakType[t-1] != breakType[t] & abs(transition) > 0.126){ #0.126
       realBreakdates <- c(realBreakdates, breakdates[t])  #confirm the break
       realBreakdatesType <- c(realBreakdatesType, breakType[t])
     }
@@ -73,16 +73,13 @@ verifyBreaks <- function(growthBetweenBreakdates, breakdates, nbBreaks){
 
   return(list(realBreakdates = realBreakdates, realBreakdatesType = realBreakdatesType))
 }
+
 getGenuineBreaks <- function(country_data){
   #get max breakdates
   start <- min(country_data$year)
   end <- max(country_data$year)  #supposed to always be 2010
-  nbMaxBreaks <- getMaximumBreaks(country_data, start)
+  nbMaxBreaks <- getMaximumBreaks(start)
   #get breakpoints
-
-
-
-
   breakpoints <- breakpoints(country_data$rgdpl~country_data$year, h = 8, breaks = nbMaxBreaks)
 
   breakpoints <- breakpoints[[1]]
@@ -95,11 +92,10 @@ getGenuineBreaks <- function(country_data){
   # get breakdates
   breakdates <- breakpoints + start - 1
 
-  #get growth for each year
-  growth <- getGrowthCountry(country_data, start, end)
-
+  countryName <- country_data[[1]][1]
   #get growth for each episode
-  growthBetweenBreakdates <- getGrowthEpisode(growth,breakpoints,nbBreaks)
+  growthBetweenBreakdates <- getGrowthCountry(breakpoints, nbBreaks, countryName)
+
 
   #return(list(levels(factor(x$isocode)),growthBetweenBreakdates,breakdates))
 
@@ -115,24 +111,24 @@ identifyBreaks <- function (){
   breaks <- replicate(nb_countries, list(), F)
   names(breaks) <- countries
   for (country in countries){
-    countryData <- getCountryData(country)
+    countryData <- data[data$isocode == country,]
     breaks[[country]] <- getGenuineBreaks(countryData)
   }
   return(breaks)
 }
 
-getGrowthList <- function(){
-  countries <- levels(factor(data$isocode))
-  nb_countries <- length(countries)
-  result <- replicate(nb_countries, list(),F)
-  names(result) <- countries
-  for (country in countries){
-    country_data <- getCountryData(country)
-    start <- min(country_data$year)
-    end <- max(country_data$year)
-    growth <- getGrowthCountry(country_data, start, end)
-    result[[country]]$growth <- growth
-    result[[country]]$years <- country_data$year
-  }
-  return(result)
+getBreaksData <- function (){
+  breakdates <- unname(unlist(sapply(breaks, "[[", 1))) #get a vector with alla breakdates
+  breakType <- unname(unlist(sapply(breaks, "[[", 2)))  #get a vector with all break types
+  nbBreaks <- lengths(sapply(breaks, "[[", 1))          #get a vector with the nb of breaks for each country
+  countries <- levels(factor(data$isocode))                  #get the list of countries
+  countryNames <- rep(countries[nbBreaks != 0],nbBreaks[nbBreaks != 0]) #rep each country it's number of breaks times
+
+  resMatrix <- cbind(countryNames, breakdates, breakType)
+  colnames(resMatrix) <- c("countryName", "breakdates", "breakType")
+  breaksData <- as.data.frame(resMatrix)
+  breaksData$breakdates <- as.numeric(breaksData$breakdates)
+  breaksData$breakType <- as.numeric(breaksData$breakType)
+  write.table(resMatrix, "./results/Country breaks.csv")
+  return(breaksData)
 }

@@ -1,16 +1,18 @@
-source("./lib/computeWAGrowthLibrary.R")
-
-#TODO : verify if this is the correct definition of the magnitude
 getEpisodeMagnitude <- function(g_ep, g_prm, N_ep){
   return((g_ep - g_prm)*N_ep)
 }
 
-getPRMGrowth_Episode <- function(start, end, data_country, alpha_ep, gamma, countries, start_previous, end_previous, previous_growth){
+getPRMGrowth_Episode <- function(start, end, data_country, countries, start_previous, end_previous, previous_growth){
   #data_country contains gdp and year for the country
   #countries contains the names of every country in the world
   #start and end of the episode
-  beta <- getWAGrowth(countries,start, end) #current wa growth
-  initial_level_income <- data_country[data_country$year == start,"rgdpl"]  #initial level of income
+  first_year <- min(data_country$year)
+  last_year <- max(data_country$year)
+  country_name <- data_country[[1]][1]
+  alpha <- getGrowthEpisode(country_name, first_year, last_year)
+  gamma <- getGrowthEpisode(country_name, start, end)
+  beta <- getWAGrowth(countries, start, end) #current wa growth
+  initial_level_income <- log(data_country[data_country$year == start,"rgdpl"])  #initial level of income
   #We don't care about above or below because it's the same formula whatever
 
   previous_complete_regression <- 1
@@ -18,19 +20,17 @@ getPRMGrowth_Episode <- function(start, end, data_country, alpha_ep, gamma, coun
     gwa_before <- getWAGrowth(countries, start_previous, end_previous) #previous wa growth
     previous_complete_regression <- (previous_growth - gwa_before)
   }
-  growth_prm <- alpha_ep + beta * previous_complete_regression + gamma * initial_level_income
+  growth_prm <- alpha + beta * previous_complete_regression + gamma * initial_level_income
   return(growth_prm)
 }
 
 
 
-#' alpha : TODO : Find the meaning of this term
+#' alpha : growth for the entire time serie
 #' beta : g_wa during the episode
-#' gamma : TODO : Find the meaning of this term
-getPRMGrowth_Country <- function(country){
+#' gamma : growth during the episode
 
-  alpha_ep <- 0.77
-  gamma <- 0.001
+getPRMGrowth_Country <- function(country){
 
   subset <- breaksData[breaksData$countryName == country,]
 
@@ -43,16 +43,16 @@ getPRMGrowth_Country <- function(country){
 
   dates <- c(first_year_country,subset$breakdates,last_year_country)
 
-  prm_growth_first <- getPRMGrowth_Episode(first_year_country,subset$breakdates[1],data_country,alpha_ep,gamma,world_countries,NULL,NULL,NULL)
-  real_growth_first <- mean(getGrowthCountry2(country,1,(subset$breakdates[1]-first_year_country+1)), na.rm = T)
+  prm_growth_first <- getPRMGrowth_Episode(first_year_country,subset$breakdates[1],data_country,world_countries,NULL,NULL,NULL)
+  real_growth_first <- getGrowthEpisode(country, first_year_country, subset$breakdates[1])
 
   prm_growth_list <- prm_growth_first
   real_growth_list <- real_growth_first
 
   for (i in 2:(nb_breaks+1)){
-    prm_growth <- getPRMGrowth_Episode(dates[i],dates[i+1],data_country,alpha_ep,gamma,world_countries,dates[i-1],dates[i],prm_growth_list[i-1])
+    prm_growth <- getPRMGrowth_Episode(dates[i],dates[i+1],data_country,world_countries,dates[i-1],dates[i],prm_growth_list[i-1])
     prm_growth_list <- c(prm_growth_list, prm_growth)
-    real_growth <- mean(getGrowthCountry2(country,dates[i]-first_year_country+1,dates[i+1]-first_year_country+1), na.rm = T)
+    real_growth <- getGrowthEpisode(country, dates[i], dates[i+1])
     real_growth_list <- c(real_growth_list, real_growth)
   }
 
@@ -64,4 +64,33 @@ getCountryMagnitudeEpisode <- function(country){
   growth <- getPRMGrowth_Country(country)
   growth$magnitude <- getEpisodeMagnitude(growth$growth_real, growth$growth_prm, growth$duration)
   return(growth)
+}
+
+getMagnitudes <- function(countries){
+  nb_countries <- length(countries)
+  magnitudesList <- replicate(nb_countries, list())
+  names(magnitudesList) <- countries
+  for (country in countries){
+    magnitudesList[[country]] <- getCountryMagnitudeEpisode(country)
+  }
+  return(magnitudesList)
+}
+
+getWAGrowth <- function(countries, year_start, year_end){
+  initial <- final <- NULL
+  for (country in countries){
+    country_first_year <- min(data[data$isocode == country, "year"])
+    country_last_year <- max(data[data$isocode == country, "year"])
+
+    if(country_first_year > year_start | country_last_year < year_end){ #excluding countries with partial data for this period
+      next
+    }
+
+    countryGDP_initial <- data[data$isocode == country & data$year == year_start, "rgdpl"]
+    countryGDP_final <- data[data$isocode == country & data$year == year_end, "rgdpl"]
+
+    initial <- c(initial, countryGDP_initial)
+    final <- c(final, countryGDP_final)
+  }
+  return ((mean(final)-mean(initial))/mean(initial))
 }

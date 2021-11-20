@@ -7,9 +7,6 @@
 # Data before 1955 --> max 4 breaks
 
 source("./lib/identifyBreaksLibrary.R")
-source("./results/plotResults.R")
-
-growthData <- getGrowthList()
 
 breaks <- identifyBreaks()
 
