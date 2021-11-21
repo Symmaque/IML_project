@@ -24,6 +24,13 @@ getGrowthEpisode <- function(country, start_year, end_year){
   growth <- (currentGDP - previousGDP)/previousGDP
   return(mean(growth))
 }
+### implementaion of OLS method to find the growth
+# getGrowthEpisodeOLS <- function(country, start_year, end_year){
+#   GDP <- log(data[data$isocode == country & data$year >= start_year & data$year <= end_year, "rgdpl"])
+#   years <- seq(1,(end_year - start_year + 1))
+#   growth <- cov(years, GDP)/var(years)
+#   return (growth)
+# }
 
 #' computes the growth for all episodes for a country
 #' @param breakdates list of breakdates for the country
