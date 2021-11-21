@@ -1,7 +1,7 @@
 #file to plot result from the list of countries
 
 #list of countries
-countries <- c("AFG", "BRA", "FRA", "JOR", "ROM")
+countries <- c("AFG", "BRA", "ITA", "JOR", "ROM")
 
 #' adds vertical lines for the breakdates
 #' @param country the isocode of the country

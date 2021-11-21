@@ -36,5 +36,3 @@ source("./executable/identifyBreaks.R")
 
 #compute magnitude for each episode
 source("./executable/computeMagnitude.R")
-
-

@@ -17,43 +17,33 @@ getMaximumBreaks <- function (start){
 #' @param country isocode of the country
 #' @param start_year first year of the episode
 #' @param end_year last year of the episode
-#' @return growth during the episode
+#' @return average growth per year during the episode
 getGrowthEpisode <- function(country, start_year, end_year){
-  initialGDP <- data[data$isocode == country & data$year == start_year,"rgdpl"]
-  finalGDP <- data[data$isocode == country & data$year == end_year,"rgdpl"]
-  result <- (finalGDP - initialGDP)/initialGDP
-  return(result)
+  currentGDP <- data[data$isocode == country & data$year > start_year & data$year <= end_year, "rgdpl"]
+  previousGDP <- data[data$isocode == country & data$year >= start_year & data$year < end_year, "rgdpl"]
+  growth <- (currentGDP - previousGDP)/previousGDP
+  return(mean(growth))
 }
 
 #' computes the growth for all episodes for a country
-#' @param breakpoints list of breakdates for the country
+#' @param breakdates list of breakdates for the country
 #' @param nbBreaks the number of breaks
 #' @param country the isocode of the country
 #' @return list of growths between the breakdates
-getGrowthCountry <- function (breakpoints, nbBreaks, country){
+getGrowthCountry <- function (breakdates, nbBreaks, country){
   data_country <- data[data$isocode == country,]
   first_year <- min(data_country$year)
   last_year <- max(data_country$year)
 
-  if(nbBreaks == 0){  #growth on the entire serie
-    return (getGrowthEpisode(country, first_year, last_year))
-  }
+  breakdates <- c(first_year, breakdates, last_year)
 
   #initiate list
   growthBetweenBreakdates <- NULL
 
-  #first episode
-  growthBetweenBreakdates[1] <- getGrowthEpisode(country, first_year, breakpoints[1]+first_year+1)
-
-  #intermediate episodes
-  if (nbBreaks >= 2){
-    for (t in 2:nbBreaks){
-      growthBetweenBreakdates[t] <- getGrowthEpisode(country, breakpoints[t-1]+first_year+1, breakpoints[t]+first_year+1)
+  #episodes
+    for (t in 1:(nbBreaks+1)){
+      growthBetweenBreakdates[t] <- getGrowthEpisode(country, breakdates[t], breakdates[t+1])
     }
-  }
-
-  #last episode
-  growthBetweenBreakdates[nbBreaks+1] <- getGrowthEpisode(country, breakpoints[nbBreaks]+first_year+1, last_year)
 
   return(growthBetweenBreakdates)
 }
@@ -75,7 +65,7 @@ verifyBreaks <- function(growthBetweenBreakdates, breakdates, nbBreaks){
 
   #first break
   breakType[1] <- sign(growthBetweenBreakdates[2]-growthBetweenBreakdates[1])
-  if(abs(growthBetweenBreakdates[2]-growthBetweenBreakdates[1]) > 0.084){
+  if(abs(growthBetweenBreakdates[2]-growthBetweenBreakdates[1]) > 0.02){
     realBreakdates[1] <- breakdates[1]
     realBreakdatesType[1] <- breakType[1]
   }
@@ -89,10 +79,10 @@ verifyBreaks <- function(growthBetweenBreakdates, breakdates, nbBreaks){
     breakType[t] <- sign(transition)
 
     #two consecutive breaks of the same type
-    if (breakType[t-1] == breakType[t] & abs(transition) > 0.042){
+    if (breakType[t-1] == breakType[t] & abs(transition) > 0.01){
       realBreakdates <- c(realBreakdates, breakdates[t])  #confirm the break
       realBreakdatesType <- c(realBreakdatesType, breakType[t])
-    }else if (breakType[t-1] != breakType[t] & abs(transition) > 0.126){ #two consecutive breaks of different types
+    }else if (breakType[t-1] != breakType[t] & abs(transition) > 0.03){ #two consecutive breaks of different types
       realBreakdates <- c(realBreakdates, breakdates[t])  #confirm the break
       realBreakdatesType <- c(realBreakdatesType, breakType[t])
     }
@@ -126,7 +116,7 @@ getGenuineBreaks <- function(country_data){
 
   countryName <- country_data[[1]][1]
   #get growth for each episode
-  growthBetweenBreakdates <- getGrowthCountry(breakpoints, nbBreaks, countryName)
+  growthBetweenBreakdates <- getGrowthCountry(breakdates, nbBreaks, countryName)
 
   #apply criteria on breakdates to indentify the genuine ones
   return(verifyBreaks(growthBetweenBreakdates, breakdates, nbBreaks))

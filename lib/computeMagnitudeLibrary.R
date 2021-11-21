@@ -109,7 +109,10 @@ getMagnitudes <- function(countries){
 #' @param year_end the last year of the episode
 #' @return the average growth of all the countries during the episode
 getWAGrowth <- function(countries, year_start, year_end){
-  initial <- final <- NULL
+  nb_years <- year_end - year_start + 1
+  #will contains the sum of GDP of countries for each year
+  worldGDP <- rep(0, nb_years)
+  nb_countries <- 0 #number of countries taken into account
   for (country in countries){
     country_first_year <- min(data[data$isocode == country, "year"])
     country_last_year <- max(data[data$isocode == country, "year"])
@@ -117,12 +120,15 @@ getWAGrowth <- function(countries, year_start, year_end){
     if(country_first_year > year_start | country_last_year < year_end){ #excluding countries with partial data for this period
       next
     }
+    nb_countries <- nb_countries + 1
 
-    countryGDP_initial <- data[data$isocode == country & data$year == year_start, "rgdpl"]
-    countryGDP_final <- data[data$isocode == country & data$year == year_end, "rgdpl"]
-
-    initial <- c(initial, countryGDP_initial)
-    final <- c(final, countryGDP_final)
+    worldGDP <- worldGDP + data[data$isocode == country & data$year >= year_start & data$year <= year_end, "rgdpl"]
   }
-  return ((mean(final)-mean(initial))/mean(initial))
+
+  meanWorldGDP <- worldGDP/nb_countries #mean of GDP for each year
+
+  previousGDP <- meanWorldGDP[1:(nb_years-1)]
+  currentGDP <- meanWorldGDP[2:nb_years]
+
+  return (mean((currentGDP - previousGDP)/previousGDP))
 }
