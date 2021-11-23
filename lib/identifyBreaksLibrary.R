@@ -59,7 +59,7 @@ getGrowthCountry <- function (breakdates, nbBreaks, country){
 #' @param growthBetweenBreakdates the list of growths between breakdates
 #' @param breakdates the list of breakdates
 #' @param nbBreaks the number of breaks
-#' @return list of real breakdates and their type (acceleration or decelaration)
+#' @return list of real breakdates and their type (acceleration or deceleration)
 verifyBreaks <- function(growthBetweenBreakdates, breakdates, nbBreaks){
   #initiate lists
   realBreakdates <- NULL

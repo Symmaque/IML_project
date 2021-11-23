@@ -10,7 +10,7 @@ getEpisodeMagnitude <- function(g_ep, g_prm, N_ep){
 #' computes the counter factual growth for an episode of a country
 #' @param start first year of the episode
 #' @param end last year of the episode
-#' @param data_country table containing data for the country to which episode belong
+#' @param data_country table containing data for the country to which episode belongs
 #' @param countries list of countries in the world
 #' @param start_previous the first year of the previous episode (NULL if the episode is the first)
 #' @param end_previous the last year of the previous episode (NULL if the episode is the first)
@@ -58,22 +58,29 @@ getPRMGrowth_Country <- function(country){
   last_year_country <- max(data_country$year)
   world_countries <- levels(factor(data$isocode))
 
-  dates <- c(first_year_country,subset$breakdates,last_year_country)
+  dates <- c(first_year_country,subset$breakdates,last_year_country)  #add first year and last year to breakdates
 
+  #prm and real growth for the first episode
   prm_growth_first <- getPRMGrowth_Episode(first_year_country,subset$breakdates[1],data_country,world_countries,NULL,NULL,NULL)
   real_growth_first <- getGrowthEpisode(country, first_year_country, subset$breakdates[1])
 
+  #initialisation of lists of real and prm growth
   prm_growth_list <- prm_growth_first
   real_growth_list <- real_growth_first
 
+  #intermediate episodes
   for (i in 2:(nb_breaks+1)){
+    #computes the prm growth and add it to the list
     prm_growth <- getPRMGrowth_Episode(dates[i],dates[i+1],data_country,world_countries,dates[i-1],dates[i],prm_growth_list[i-1])
     prm_growth_list <- c(prm_growth_list, prm_growth)
+    #fetches the real growth and add it to the list
     real_growth <- getGrowthEpisode(country, dates[i], dates[i+1])
     real_growth_list <- c(real_growth_list, real_growth)
   }
 
+  #duration of each episode
   intervals <- as.numeric(dates[2:length(dates)]) - as.numeric(dates[1:(length(dates)-1)])
+
   return(list(
     country = rep(country,nb_breaks+1),
     growth_prm = prm_growth_list,
@@ -110,7 +117,7 @@ getMagnitudes <- function(countries){
 #' @return the average growth of all the countries during the episode
 getWAGrowth <- function(countries, year_start, year_end){
   nb_years <- year_end - year_start + 1
-  #will contains the sum of GDP of countries for each year
+  #will contain the sum of GDP of countries for each year
   worldGDP <- rep(0, nb_years)
   nb_countries <- 0 #number of countries taken into account
   for (country in countries){

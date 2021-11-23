@@ -22,7 +22,7 @@ addArrows <- function(country, colors, middle.y, step.y){
   start_arrows.x <- breakdates
 
   end_arrows.y <- start_arrows.y + breaksData[breaksData$country == country,"breakType"]*step.y #up if up break or down if down break
-  end_arrows.x <- start_arrows.x
+  end_arrows.x <- start_arrows.x #vertical arrows
 
   arrows(start_arrows.x, start_arrows.y, end_arrows.x, end_arrows.y, col = colors)
 }
@@ -38,16 +38,17 @@ addInformation <- function(country, min.x, max.x){
   length.x <- max.x - min.x #length of x axis
 
   #points in the middle of each episode
-  middle_points <- (breakdates[2:length(breakdates)] + breakdates[1:(length(breakdates) - 1)])/2
+  middle_points <- (breakdates[2:length(breakdates)] + breakdates[1:(length(breakdates)-1)])/2
   #positions of the information in the middle of each episode
   positions <- (middle_points-min.x)/length.x
 
-  #texts
+  #texts keeping 2 decimals
   growth_prm_text <- paste("g_PRM:",format(round(magnitudes[[country]]$growth_prm, 2), nsmall = 2))
   growth_real_text <- paste("g_real:",format(round(magnitudes[[country]]$growth_real,2), nsmall = 2))
   episode_magnitude_text <- paste("EM_ep:", format(round(magnitudes[[country]]$magnitude, 2), nsmall = 2))
   duration_text <- paste("N_ep:",magnitudes[[country]]$duration)
 
+  #concatenated texts
   text <- paste0(growth_real_text, rep('\n', length(breakdates)), growth_prm_text, rep('\n', length(breakdates)), duration_text, rep('\n', length(breakdates)), episode_magnitude_text)
 
   mtext(text, adj = positions)
@@ -84,14 +85,13 @@ plotResults <- function() {
     min.x <- min(data[data$isocode == country,"year"])
     max.x <- max(data[data$isocode == country,"year"])
 
+    #plot data
     plot(log(data[data$isocode == country,"rgdpl"])~data[data$isocode == country,"year"], type = "l", xlab = xlab, ylab = ylab)
 
+    #customize the graph
     addBreakLines(country, colors)
-
     addArrows(country, colors, middle.y, step.y)
-
     addInformation(country, min.x, max.x)
-
     addBreakdates(country, min.x, max.x)
   }
 }
