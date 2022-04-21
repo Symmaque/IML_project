@@ -5,5 +5,3 @@ About data : I get 122 countries instead of 125
 About Bai perron tests : I have not found any non-deterministic function in the breakpoints function
 See the source code here : https://rdrr.io/cran/strucchange/src/R/breakpoints.R#heading-6
 
-#####################
-About counterfactual growth : What is the meaning of the terms of the 4th equation ?
